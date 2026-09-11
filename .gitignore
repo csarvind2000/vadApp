@@ -1,0 +1,28 @@
+# Secrets -- contains the Django secret key and the database password
+src/.env
+
+# Runtime data: uploaded videos, incident thumbnails, database volume
+src/data/
+
+# Build artefacts
+**/node_modules/
+**/dist/
+**/__pycache__/
+*.pyc
+*.sqlite3
+
+# LaTeX intermediates (main.pdf is committed)
+manuscript/*.aux
+manuscript/*.log
+manuscript/*.out
+manuscript/*.bbl
+manuscript/*.blg
+manuscript/*.fls
+manuscript/*.fdb_latexmk
+manuscript/*.synctex.gz
+manuscript/*.toc
+
+# Local editor / OS
+.DS_Store
+.vscode/
+.idea/

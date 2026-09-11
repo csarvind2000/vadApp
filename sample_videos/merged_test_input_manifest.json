@@ -1,0 +1,63 @@
+{
+  "video": "merged_test_input.mp4",
+  "fps": 25,
+  "duration_sec": 112.0,
+  "segments": [
+    {
+      "start_sec": 0.0,
+      "end_sec": 10.0,
+      "source": "Normal_Videos_717_x264",
+      "ground_truth": "Normal",
+      "contains_annotated_anomaly": false
+    },
+    {
+      "start_sec": 10.0,
+      "end_sec": 26.0,
+      "source": "RoadAccidents001_x264",
+      "ground_truth": "RoadAccidents",
+      "contains_annotated_anomaly": true
+    },
+    {
+      "start_sec": 26.0,
+      "end_sec": 34.0,
+      "source": "Normal_Videos_717_x264",
+      "ground_truth": "Normal",
+      "contains_annotated_anomaly": false
+    },
+    {
+      "start_sec": 34.0,
+      "end_sec": 50.0,
+      "source": "Explosion004_x264",
+      "ground_truth": "Explosion",
+      "contains_annotated_anomaly": true
+    },
+    {
+      "start_sec": 50.0,
+      "end_sec": 66.0,
+      "source": "Shooting002_x264",
+      "ground_truth": "Shooting",
+      "contains_annotated_anomaly": true
+    },
+    {
+      "start_sec": 66.0,
+      "end_sec": 76.0,
+      "source": "Normal_Videos_891_x264",
+      "ground_truth": "Normal",
+      "contains_annotated_anomaly": false
+    },
+    {
+      "start_sec": 76.0,
+      "end_sec": 92.0,
+      "source": "Arson035_x264",
+      "ground_truth": "Arson",
+      "contains_annotated_anomaly": true
+    },
+    {
+      "start_sec": 92.0,
+      "end_sec": 112.0,
+      "source": "Stealing058_x264",
+      "ground_truth": "Stealing",
+      "contains_annotated_anomaly": true
+    }
+  ]
+}

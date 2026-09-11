@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Controlled comparison on the UCF-Crime test set. Every method consumes the same I3D features, the same official split and the same three seeds, so rows differ only in the model. AUC is frame-level over all $290$ test videos; $\aucm_{\mathrm{A}}$ is restricted to the $140$ anomalous videos and therefore reflects localisation; FAR is measured on normal videos at threshold $0.5$, with $\Delta$FAR its change relative to the multiple-instance baseline. $p$ is a paired video-level bootstrap of the AUC difference against the proposed model. Mean $\pm$ standard deviation over three seeds. No AUC value is marked best: every $p$ exceeds $0.16$, so no pair of methods is separated on that measure. Best values are marked in the two columns that do separate them. Mean pooling emits one score per video and cannot localise; it is included to show how much frame-level AUC is attainable without localisation.}
+\label{tab:comparison}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Method & AUC & $p$ & $\aucm_{\mathrm{A}}$ & FAR$_{0.5}$ & $\Delta$FAR & Params (M) \\
+\midrule
+\textbf{ATA-HS (proposed)} & $0.761_{\pm0.014}$ & --- & $\mathbf{0.582}_{\pm0.009}$ & $\mathbf{0.017}_{\pm0.004}$ & $-24\%$ & 2.66 \\
+\midrule
+MIL ranking \citep{sultani2018real} & $0.777_{\pm0.005}$ & $0.74$ & $0.580_{\pm0.009}$ & $0.023_{\pm0.004}$ & --- & 1.07 \\
+Dense self-attention & $0.760_{\pm0.016}$ & $0.37$ & $0.562_{\pm0.013}$ & $0.028_{\pm0.015}$ & $+21\%$ & 5.32 \\
+Magnitude selection, RTFM-style \citep{tian2021weakly} & $0.695_{\pm0.081}$ & $0.16$ & $0.549_{\pm0.024}$ & $0.063_{\pm0.062}$ & $+177\%$ & 2.16 \\
+Mean pooling, no localisation & $0.775_{\pm0.011}$ & $0.96$ & $0.537_{\pm0.008}$ & $0.304_{\pm0.201}$ & $+1226\%$ & 1.11 \\
+\bottomrule
+\end{tabular}
+\end{table}

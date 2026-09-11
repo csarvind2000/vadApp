@@ -1,0 +1,158 @@
+name: vadapp
+
+services:
+
+  # ============================================================
+  # Redis -- backing store for the RQ job queue.
+  # Host port 6381 to avoid clashing with other stacks on this machine
+  # (6379 and 6380 are commonly taken by other stacks).
+  # ============================================================
+  redis:
+    image: redis:7.4
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # ============================================================
+  # PostgreSQL
+  # ============================================================
+  postgres:
+    image: postgres:17.4
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ============================================================
+  # Model service -- the ONLY container that needs the GPU.
+  # Loads I3D + the trained ATA-HS checkpoint once and serves both
+  # offline analysis and live streaming over HTTP.
+  # ============================================================
+  vad_model:
+    build:
+      context: vad_model
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
+    environment:
+      - VAD_CHECKPOINT=/models/best.pt
+      - VAD_BACKBONE=${VAD_BACKBONE:-i3d_r50}
+      - VAD_THRESHOLD=${VAD_THRESHOLD:-0.5}
+      - RESEARCH_ROOT=/research
+    volumes:
+      # The research package is mounted, not copied, so the app and the
+      # experiments always share one definition of the model.
+      - ${RESEARCH_ROOT:-../..}:/research:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DOCKER_ROOT:-./data}/media:/media
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # ============================================================
+  # Backend -- Django REST API (CPU only)
+  # ============================================================
+  backend:
+    build:
+      context: WebGUI/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - MEDIA_ROOT=/media
+      - DEBUG=${DEBUG:-False}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5174}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:5174}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - VAD_MODEL_URL=http://vad_model:5000
+      - VAD_REQUIRE_AUTH=${VAD_REQUIRE_AUTH:-False}
+    volumes:
+      - ${DOCKER_ROOT:-./data}/media:/media
+    restart: unless-stopped
+
+  # ============================================================
+  # AI worker -- RQ worker running analysis jobs.
+  # Shares the media volume with the backend and the model service so a
+  # queued job can read the uploaded file by path.
+  # ============================================================
+  ai_worker:
+    build:
+      context: WebGUI/backend
+      dockerfile: Dockerfile.ai_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - MEDIA_ROOT=/media
+      - DEBUG=${DEBUG:-False}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - VAD_MODEL_URL=http://vad_model:5000
+      - VAD_REQUIRE_AUTH=${VAD_REQUIRE_AUTH:-False}
+    volumes:
+      - ${DOCKER_ROOT:-./data}/media:/media
+    restart: unless-stopped
+
+  # ============================================================
+  # Frontend -- React (Vite) + MUI
+  # ============================================================
+  frontend:
+    build:
+      context: WebGUI/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_VERSION: ${VERSION:-1.0.0}
+    ports:
+      - "5174:80"
+
+    volumes:
+      # nginx serves uploaded video and incident thumbnails straight from the
+      # shared media volume. Django cannot: django.conf.urls.static.static()
+      # returns no URL patterns when DEBUG is False, so a production start has
+      # no /media/ route. Serving here also provides byte-range requests, which
+      # HTML5 video seeking requires.
+      - ${DOCKER_ROOT:-./data}/media:/usr/share/nginx/media:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:

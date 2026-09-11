@@ -1,0 +1,54 @@
+\begin{tikzpicture}[
+  x=1mm, y=1mm, font=\scriptsize,
+  box/.style={draw,rounded corners=1.6pt,align=center,inner sep=2.2pt,line width=0.45pt},
+  feat/.style={box,fill=black!5,  minimum width=22mm,minimum height=8mm},
+  conv/.style={box,fill=blue!10,  minimum width=16mm,minimum height=5mm},
+  attn/.style={box,fill=orange!16,minimum width=30mm,minimum height=9mm},
+  head/.style={box,fill=red!10,   minimum width=27mm,minimum height=6.4mm},
+  gate/.style={box,fill=green!12, minimum width=24mm,minimum height=8mm},
+  ar/.style={-{Latex[length=1.5mm,width=1.3mm]},line width=0.45pt},
+  note/.style={align=center,font=\scriptsize\itshape,text=black!60},
+]
+
+%% ---------------- row 1 : feature extraction + temporal context ---------
+\node[feat] at (0,0)   (vid) {video\\$16$-frame snippets};
+\node[feat] at (30,0)  (bb)  {frozen I3D\\$\mathbf{x}_t\!\in\!\mathbb{R}^{2048}$};
+\node[feat] at (60,0)  (emb) {linear $+$ LN\\$d=512$};
+\draw[ar] (vid) -- (bb);
+\draw[ar] (bb)  -- (emb);
+
+\node[conv] at (92, 9)   (d1) {dilation $1$};
+\node[conv] at (92, 3)   (d2) {dilation $2$};
+\node[conv] at (92,-3)   (d4) {dilation $4$};
+\node[conv] at (92,-9)   (d8) {dilation $8$};
+\node[draw,dashed,rounded corners=2pt,fit=(d1)(d8),inner sep=2.6pt] (ms) {};
+\node[note] at (92,17) {multi-scale temporal context\\($3$--$17$ snippets $\approx$ $1.6$--$9.1$\,s)};
+\foreach \n in {d1,d2,d4,d8}{\draw[ar] (emb.east) -- (\n.west);}
+
+\node[feat] at (124,0) (H) {$H=[\mathbf{h}_1\dots\mathbf{h}_T]$};
+\foreach \n in {d1,d2,d4,d8}{\draw[ar] (\n.east) -- (H.west);}
+
+%% ---------------- row 2 : sparse attention, heads, fusion ---------------
+\node[gate] at (16,-30)  (tau) {budget gate\\$\tau=e^{\beta\tanh g(\bar{\mathbf{h}})}$};
+\node[attn] at (54,-30)  (ent) {$\operatorname{entmax}_{1.5}(\mathbf{z}/\tau)$\\exactly sparse, differentiable};
+\draw[ar] (tau) -- (ent);
+
+% carry H from the end of row 1 down to the start of row 2
+\draw[ar] (H.south) -- ++(0,-9) -| (tau.north);
+
+
+\node[head] at (98,-23) (h1) {MIL head\ \ $s^{\mathrm{mil}}$};
+\node[head] at (98,-30) (h2) {deviation\ \ $\|\mathbf{h}_t-\mathbf{c}\|$};
+\node[head] at (98,-37) (h3) {prediction\ \ $\|\hat{\mathbf{h}}_{t+1}-\mathbf{h}_{t+1}\|$};
+\foreach \n in {h1,h2,h3}{\draw[ar] (ent.east) -- (\n.west);}
+
+\node[gate] at (134,-30) (fus) {fusion gate $\mathbf{w}_t$};
+\foreach \n in {h1,h2,h3}{\draw[ar] (\n.east) -- (fus.west);}
+
+\node[feat] at (166,-30) (out) {$s_t\in[0,1]$\\per snippet};
+\draw[ar] (fus) -- (out);
+
+\node[note] at (54,-42)  {sparsity level learned per video};
+\node[note] at (98,-47)  {centring statistics over unpadded positions only};
+
+\end{tikzpicture}

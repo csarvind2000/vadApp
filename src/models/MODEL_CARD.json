@@ -1,0 +1,27 @@
+{
+  "model": "ATA-HS (MIL head)",
+  "checkpoint": "best.pt",
+  "backbone": "i3d_r50 (Kinetics-400)",
+  "feature_dim": 2048,
+  "trained_epoch": 32,
+  "selection": "validation video-AUC within the ATA-HS family; FAR used as the operational tie-break",
+  "val_video_auc": 0.9432,
+  "test_frame_auc": 0.7693,
+  "test_auc_anomalous_only": 0.574,
+  "test_far_at_0.5": 0.0106,
+  "test_eer": 0.2891,
+  "hyperparams": {
+    "model": "atahs",
+    "d_model": 512,
+    "attn": "entmax",
+    "heads": "mil",
+    "topk": 1,
+    "dropout": 0.3,
+    "lr": 0.001,
+    "epochs": 40,
+    "segments": 0,
+    "max_snippets": 512,
+    "seed": 0
+  },
+  "note": "Trained on the official UCF-Crime split (1610 train / 290 test) with video-level labels only."
+}

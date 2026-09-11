@@ -1,0 +1,5 @@
+# Secrets: Django secret key and database password
+.env
+
+# Runtime data: uploaded videos, incident thumbnails, database volume
+data/

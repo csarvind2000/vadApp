@@ -1,0 +1,21 @@
+# Development override. Use with:
+#   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+#
+# Bind-mounts the backend source over the image copy, so edits to settings.py or
+# views.py take effect on `docker compose restart backend` without rebuilding.
+# The production compose file copies the source at build time instead.
+services:
+  backend:
+    volumes:
+      - ./WebGUI/backend/src:/app
+      - ${DOCKER_ROOT:-./data}/media:/media
+  ai_worker:
+    volumes:
+      - ./WebGUI/backend/src:/app
+      - ${DOCKER_ROOT:-./data}/media:/media
+  vad_model:
+    volumes:
+      - ./vad_model:/app
+      - ${RESEARCH_ROOT:-../..}:/research:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DOCKER_ROOT:-./data}/media:/media
