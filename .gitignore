@@ -26,3 +26,9 @@ manuscript/*.toc
 .DS_Store
 .vscode/
 .idea/
+sample_videos/
+demo.mp4
+
+# Video footage is hosted on Google Drive, not redistributed here
+sample_videos/
+demo.mp4

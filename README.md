@@ -9,7 +9,28 @@ application, a trained model, and the manuscript describing the work.
 | Detector | ATA-HS — adaptive sparse temporal attention over I3D features |
 | Object overlay | YOLO11n, person/vehicle boxes drawn on the player |
 | Manuscript | [`manuscript/main.pdf`](manuscript/main.pdf) |
-| Demo video | [`demo.mp4`](demo.mp4) — detections annotated with score, category and boxes |
+| Walkthrough | [YouTube](https://www.youtube.com/watch?v=Hym006TV5zY) |
+| Demo and sample videos | [Google Drive](https://drive.google.com/drive/folders/17vvr6t2FfYsheeEf5cHbT_g6Jkda2po3?usp=drive_link) |
+
+## Video
+
+A walkthrough of the application is on
+[YouTube](https://www.youtube.com/watch?v=Hym006TV5zY).
+
+The annotated demo video and the sample clips used to test the application are on
+[Google Drive](https://drive.google.com/drive/folders/17vvr6t2FfYsheeEf5cHbT_g6Jkda2po3?usp=drive_link).
+They are hosted there rather than in this repository because the footage comes
+from UCF-Crime, which is distributed for research use by UCF CRCV and does not
+grant redistribution rights.
+
+`demo.mp4` shows every detected interval annotated with the anomaly score, the
+predicted category and the object boxes. It includes a missed detection, so the
+failure mode is visible rather than edited out.
+
+The sample clips cover three cases: videos the detector finds, videos it misses,
+and normal footage that triggers a false alarm. Expected outcomes for each are
+listed in `sample_videos/README.md`, and `tools/make_input_video.py` in the
+research repository rebuilds the merged test clip from the original dataset.
 
 ## Results
 
@@ -44,8 +65,10 @@ Frontend <http://localhost:5174> · API <http://localhost:8001/api/>
 Note: use `docker compose` (v2 plugin), not the older `docker-compose` binary;
 the two name images differently and will start different containers.
 
-Upload a video from [`sample_videos/`](sample_videos/) — that directory's README
-lists the expected outcome for each, including the failure cases.
+Upload one of the sample clips from the
+[Google Drive folder](https://drive.google.com/drive/folders/17vvr6t2FfYsheeEf5cHbT_g6Jkda2po3?usp=drive_link);
+the expected outcome for each, including the failure cases, is listed alongside
+them.
 
 
 Web application for surveillance video anomaly detection. Users upload a video or
