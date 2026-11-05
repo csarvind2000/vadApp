@@ -16,6 +16,6 @@ services:
   vad_model:
     volumes:
       - ./vad_model:/app
-      - ${RESEARCH_ROOT:-../..}:/research:ro
+      - ${RESEARCH_ROOT:-../research}:/research:ro
       - ${MODELS_DIR:-./models}:/models:ro
       - ${DOCKER_ROOT:-./data}/media:/media

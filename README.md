@@ -96,10 +96,11 @@ inference in a single long-lived process avoids paying the model-load cost on
 every job and bounds GPU memory to one copy of the network, regardless of how
 many workers are running.
 
-The research package (`src/ucfcrime/`) is **mounted read-only** into the model
-container rather than copied. The app and the experiments therefore share one
-definition of the architecture; there is no second implementation to drift out
-of sync with the published results.
+The model code the app needs (`research/src/ucfcrime/`: the ATA-HS model, the
+category head, the I3D feature extractor and the Sultani baseline) is included in
+this repository and **mounted read-only** into the model container at
+`/research`. To run against a full checkout of the research code instead, set
+`RESEARCH_ROOT` to its root before `docker compose up`.
 
 ## Data flow
 
@@ -171,7 +172,7 @@ DEBUG=True python manage.py runserver 8000
 # model service (needs the GPU and the cuDNN fix from the research repo)
 cd ../../../vad_model
 source ../../../../env.sh
-RESEARCH_ROOT=$(realpath ../../..) VAD_CHECKPOINT=/path/to/best.pt python app.py
+RESEARCH_ROOT=$(realpath ../../research) VAD_CHECKPOINT=../models/best.pt python app.py
 
 # frontend
 cd ../WebGUI/frontend && npm install && npm run dev
