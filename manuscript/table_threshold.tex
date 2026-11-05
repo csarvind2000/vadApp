@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\caption{Operating points on the UCF-Crime test set. FAR$_{0.5}$ counts frames of normal videos scored above the fixed threshold $0.5$ and is therefore sensitive to the scale of a model's outputs. The remaining columns take the threshold from each model's own score distribution and are invariant to any monotone rescaling: FAR$_{@50}$ and FAR$_{@95}$ are the false-alarm rate at the threshold detecting $50\%$ and $95\%$ of annotated anomalous frames, and TPR$_{@1}$ is the fraction of anomalous frames detected at a $1\%$ false-alarm rate. Mean $\pm$ standard deviation over $n$ seeds. Best value in each threshold-free column is marked; note that it is never the model with the lowest FAR$_{0.5}$.}
+\label{tab:threshold}
+\small
+\begin{tabular}{lccccc}
+\toprule
+Method & $n$ & FAR$_{0.5}$ & FAR$_{@50}$ & FAR$_{@95}$ & TPR$_{@1}$ \\
+\midrule
+\textbf{ATA-HS (proposed)} & 5 & $0.016_{\pm0.003}$ & $0.033_{\pm0.003}$ & $0.612_{\pm0.093}$ & $0.205_{\pm0.053}$ \\
+\midrule
+MIL ranking \citep{sultani2018real} & 5 & $0.022_{\pm0.003}$ & $0.033_{\pm0.001}$ & $0.492_{\pm0.066}$ & $\mathbf{0.296}_{\pm0.017}$ \\
+Dense self-attention & 3 & $0.028_{\pm0.012}$ & $0.039_{\pm0.010}$ & $0.527_{\pm0.086}$ & $0.076_{\pm0.108}$ \\
+Magnitude selection, RTFM-style \citep{tian2021weakly} & 3 & $0.063_{\pm0.051}$ & $0.070_{\pm0.025}$ & $0.681_{\pm0.209}$ & $0.162_{\pm0.059}$ \\
+Mean pooling, no localisation & 3 & $0.304_{\pm0.164}$ & $0.024_{\pm0.006}$ & $\mathbf{0.408}_{\pm0.086}$ & $0.233_{\pm0.017}$ \\
+\bottomrule
+\end{tabular}
+\end{table}

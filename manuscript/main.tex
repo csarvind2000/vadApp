@@ -54,13 +54,17 @@ input-conditioned gate. Sparse attention with exact zeros is differentiable,
 unlike hard top-$K$ selection, so the temporal selector is trained by the task
 loss. Second, we quantify the reliability of the benchmark itself by
 bootstrapping over videos rather than frames, the level at which the data are
-independent. Across three seeds, ATA-HS matches a multiple-instance baseline in frame-level
-AUC, $0.771_{\pm0.028}$ against $0.777_{\pm0.005}$, a difference of $7\%$ of the
-benchmark's confidence interval, while reducing the false-alarm rate on normal
-video from $0.023$ to $0.012$, a reduction of $49\%$ that holds across every
-architectural variant tested. The video-level bootstrap gives a $95\%$ confidence
-interval of $\pm7.6$ AUC points, within which the reported progress on this
-benchmark from $75.4$ to $88.0$ spans approximately $1.6$ interval widths. We
+independent. Over five seeds the full model reaches $0.766_{\pm0.014}$ frame-level
+AUC against $0.778_{\pm0.004}$ for a multiple-instance baseline, a difference a
+paired video-level bootstrap does not resolve, while attaining higher average
+precision ($0.204$ against $0.189$, base rate $0.076$) and lowering the
+false-alarm rate at the conventional fixed threshold from $0.022$ to $0.016$. That
+last advantage does not survive scrutiny: measured at a matched detection rate,
+which is invariant to the scale of a model's outputs, the ordering reverses, and
+the model with by far the worst fixed-threshold false-alarm rate has the best
+threshold-free one. The video-level bootstrap gives a $95\%$ confidence
+interval of $\pm7.6$ AUC points on a single test estimate, an order of magnitude
+larger than the one- to two-point differences commonly reported between methods. We
 further show that validation video-level AUC does not predict test frame-level
 AUC ($r=-0.37$, $n=18$), and that frame-level AUC of $0.77$ coexists with a
 median temporal localisation IoU of $0.00$. Code, trained model and a deployed
@@ -154,35 +158,44 @@ methods, because it determines what a comparison can demonstrate.
 
 We address both the modelling problem and the measurement one.
 
-The architecture, ATA-HS, applies sparse attention along the temporal axis.
-Detectors that select a subset of snippets ordinarily fix the number retained,
-$K$, as a hyperparameter, which is difficult to justify when event duration
-varies by a factor of thirty across categories. We instead predict an attention
-temperature from each video, so the realised sparsity follows the content. The
-selection uses $\alpha$-entmax~\citep{peters2019sparse}, which assigns exactly
-zero weight to unselected snippets yet remains differentiable. The alternative,
-hard top-$K$, is piecewise constant in the selection scores and propagates no
-gradient to the selector, which consequently stays at its initialisation and is
-never trained.
+We make three contributions.
 
-The second contribution concerns how the benchmark is measured. We estimate
-reliability by bootstrapping over videos, the level at which the data are
-independent, rather than over frames, and report the resulting interval. From the
-same experiments we report the seed-to-seed variance of each architecture, the
-correlation between the validation signal available under weak supervision and
-the test metric, and the temporal localisation quality that frame-level AUC does
-not expose. Each of these is a property of the benchmark rather than of any
-particular model, and each constrains what a comparison on it can demonstrate.
+\textbf{Frame-level AUC does not measure temporal localisation.} A mean-pooling
+model that emits one score per video, and therefore cannot localise at all,
+reaches $0.775$ frame-level AUC on UCF-Crime, statistically indistinguishable
+from every detector we test including the multiple-instance baseline at $0.778$.
+A detector near $0.77$ AUC has a median temporal intersection-over-union of
+$0.000$ against the annotated intervals, exceeding $0.5$ on $5$ of $140$
+anomalous videos. The measure the benchmark is ordinarily compared on largely
+answers whether a video contains an anomaly, not where it is.
 
-The two contributions constrain each other, and we report them together. ATA-HS
-matches the baseline in frame-level AUC and halves the false-alarm rate on normal
-video, the latter consistently across every architectural variant we test. It
-does not improve frame-level AUC, and the measurement analysis explains why no
-method could be shown to do so by the margins currently reported: the difference
-between our model and the baseline is $7\%$ of the benchmark's confidence
-interval, and so are most of the published increments against which it would be
-compared. We therefore report accuracy parity and a false-alarm reduction as the
-result, rather than an AUC ranking the benchmark cannot support.
+\textbf{Reported differences are small relative to measurement variability.}
+Resampling test videos rather than frames, the unit at which the data are
+independent, gives a $95\%$ interval of $\pm7.6$ AUC points on a single estimate.
+Across seeds, architectures vary by up to $0.04$ AUC, and the ranking of ablations
+reverses between three seeds and five. Both are an order of magnitude larger than
+the one- to two-point differences commonly reported between methods.
+
+\textbf{A learned sparsity budget for temporal selection.} ATA-HS selects
+snippets with $\alpha$-entmax~\citep{peters2019sparse}, which assigns exactly
+zero weight outside the selected set while remaining differentiable; hard top-$K$
+is piecewise constant in the selection scores and propagates no gradient to the
+selector. A gate predicts the entmax temperature rather than fixing it. Under a
+controlled comparison this attains higher accuracy and lower seed variance than
+dense attention, than entmax at a fixed temperature, and than non-differentiable
+top-$K$. We show by direct measurement that the gate does not adapt to event
+duration as we first supposed, but supplies a sparsity schedule during training
+that a hand-set constant does not reproduce.
+
+The architectural result is not an accuracy improvement: ATA-HS reaches
+$0.766_{\pm0.014}$ AUC against $0.778_{\pm0.004}$ for the baseline, a difference
+a paired bootstrap does not resolve. It is ahead on average precision
+($0.204$ against $0.189$) and lowers the false-alarm rate at threshold $0.5$ from
+$0.022$ to $0.016$, though that last advantage proves to be a property of the
+score scale: measured at a matched detection rate it disappears and reverses.
+We report the comparison this way because the measurement
+analysis above applies to our own claims as much as to the published increments
+against which they would be compared.
 
 \section{Related work}
 \label{sec:related}
@@ -480,53 +493,39 @@ as evidence that the pipeline and the harness reproduce the reference behaviour.
 
 \subsection{Detection accuracy and false alarms}
 
-\begin{table}[htbp]
-\centering
-\caption{UCF-Crime test set, mean $\pm$ standard deviation over three seeds.
-$\aucm_{\mathrm{A}}$ is computed over anomalous videos only. FAR is measured on
-normal videos at threshold $0.5$; $\Delta$FAR is the reduction relative to the
-baseline. Rows below the rule remove one component from ATA-HS.}
-\label{tab:main}
-\small
-\begin{tabular}{lccccc}
-\toprule
-Model & Micro AUC & $\aucm_{\mathrm{A}}$ & FAR$_{0.5}$ & $\Delta$FAR & Params \\
-\midrule
-ATA-HS (full)                        & $0.761_{\pm0.014}$ & $0.582$ & $0.017_{\pm0.004}$ & $-24.4\%$ & 2.66\,M \\
-MIL baseline \citep{sultani2018real} & $0.777_{\pm0.005}$ & $0.580$ & $0.023_{\pm0.004}$ & --- & 1.07\,M \\
-\midrule
-\quad $-$ entmax (softmax)           & $\mathbf{0.771}_{\pm0.028}$ & $\mathbf{0.602}$ & $0.017_{\pm0.005}$ & $-26.8\%$ & 2.66\,M \\
-\quad $-$ hybrid heads               & $0.764_{\pm0.013}$ & $0.573$ & $\mathbf{0.012}_{\pm0.002}$ & $\mathbf{-49.4\%}$ & 2.63\,M \\
-\quad $-$ multi-scale                & $0.755_{\pm0.024}$ & $0.588$ & $\mathbf{0.012}_{\pm0.005}$ & $\mathbf{-49.9\%}$ & 2.36\,M \\
-\quad $-$ adaptive budget            & $0.731_{\pm0.040}$ & $0.568$ & $0.013_{\pm0.003}$ & $-41.3\%$ & 2.66\,M \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{table_ablation}
 
 Table~\ref{tab:main} and Figure~\ref{fig:ablation} report the main result.
 ATA-HS matches the baseline in detection accuracy and separates from it in false
 alarms.
 
 On AUC the two are not distinguishable. The best ATA-HS configuration
-reaches $0.771$ against $0.777$ for the baseline, a difference of $0.006$. The
+reaches $0.766_{\pm0.014}$ against $0.778_{\pm0.004}$ for the baseline, a
+difference of $0.012$. The
 $95\%$ video-level bootstrap interval for this test set has a half-width of
 $0.076$, so the observed difference is $7\%$ of the interval and the paired
 bootstrap does not separate the two methods. Reporting either as superior on this
 evidence would not be supportable.
 
-On false alarms the two do separate. The best ATA-HS configuration scores $0.012$
-against the baseline's $0.023$, a reduction of $49.4\%$, corresponding to $3.5$
-pooled standard deviations of the seed-to-seed variation in this quantity. The
-effect is not confined to one configuration: all five ATA-HS variants in
-Table~\ref{tab:main} reduce FAR relative to the baseline, by between $24\%$ and
-$50\%$. The reduction survives removing the multi-scale branch,
-the hybrid heads, the adaptive budget and entmax individually.
+On average precision and on the false-alarm rate at threshold $0.5$ the two do
+separate. The full model scores $0.204$ AP against $0.189$, above the $0.076$ base
+rate for both, and $0.016_{\pm0.004}$ FAR against the baseline's
+$0.022_{\pm0.004}$. The false-alarm effect is not confined to one configuration:
+all five ATA-HS variants in Table~\ref{tab:main} sit below the baseline, by
+between $24\%$ and $50\%$, surviving the removal of the multi-scale branch, the
+hybrid heads, the adaptive budget and entmax individually. The largest reduction
+is $50\%$, to $0.011_{\pm0.005}$, without the multi-scale branch.
+Section~\ref{sec:threshold} then measures the same quantity without a fixed
+threshold and finds the ordering does not hold, so the FAR$_{0.5}$ column should
+be read as a statement about the models' output scales. Average precision, which
+is threshold-free, is not subject to that objection.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth]{figures/fig_ablation.png}
-\caption{Component ablation over three seeds. Dashed line marks the baseline.
-No configuration separates from the baseline in AUC; all reduce false alarms.}
+\caption{Component ablation. Dashed line marks the baseline. No configuration
+separates from the baseline in AUC; all sit below it on the fixed-threshold
+false-alarm rate, an effect Section~\ref{sec:threshold} attributes to score scale.}
 \label{fig:ablation}
 \end{figure}
 
@@ -554,11 +553,107 @@ detector that localises events from one that cannot.
 The two metrics that do separate them are the AUC restricted to anomalous videos
 and the false-alarm rate. Mean pooling scores $0.537$ on the former against
 $0.582$ for ATA-HS, and raises alarms on $30.4\%$ of normal frames against
-$1.7\%$. Against the remaining methods, ATA-HS reduces the false-alarm rate from $0.023$
-for the multiple-instance baseline and $0.028$ for dense self-attention to
-$0.017$, with the smallest seed-to-seed variation of any row. Its accuracy is not
-distinguishable from the baseline on either AUC measure. Magnitude-based selection
+$1.7\%$. Against the remaining methods, ATA-HS lowers the false-alarm rate from
+$0.023$ for the multiple-instance baseline and $0.028$ for dense self-attention
+to $0.017$, with the smallest seed-to-seed variation of any row. Its accuracy is
+not distinguishable from the baseline on either AUC measure. The false-alarm
+column should be read with Section~\ref{sec:threshold}, which shows this
+advantage to be a property of the score scale rather than of detection; the
+AUC restricted to anomalous videos is the column in this table that is not.
+
+Table~\ref{tab:comparison} is restricted to the three seeds every method was
+trained on, so its figures for ATA-HS and the multiple-instance baseline
+($0.761$ and $0.777$) are the three-seed means, whereas Table~\ref{tab:main}
+reports those two models over five seeds ($0.766$ and $0.778$). The two are the
+same models; the gap between the pairs is smaller than one seed-to-seed standard
+deviation and is itself an illustration of the sampling noise discussed above. Magnitude-based selection
 is the weakest and least stable row ($0.695_{\pm0.081}$).
+
+\input{table_threshold}
+
+\subsection{False alarms measured without a fixed threshold}
+\label{sec:threshold}
+
+FAR$_{0.5}$, the false-alarm rate reported above and throughout this literature,
+counts frames of normal videos scored above $0.5$. It therefore depends on where
+a model happens to place its output scale. A model that multiplies every score by
+a constant below one lowers FAR$_{0.5}$ without changing the ranking of any pair
+of frames, and so without detecting anything better. The measure is a joint
+statement about detection and calibration, reported as though it were about
+detection alone.
+
+Table~\ref{tab:threshold} replaces the fixed threshold with one read from each
+model's own score distribution. FAR$_{@95}$ is the false-alarm rate at the
+threshold that detects $95\%$ of annotated anomalous frames, TPR$_{@1}$ the
+fraction of anomalous frames detected at a $1\%$ false-alarm rate; both are
+unchanged by any monotone rescaling of the scores.
+
+The ordering reverses. On FAR$_{0.5}$ the proposed model leads the table at
+$0.016$ against $0.022$ for the multiple-instance baseline; at a matched $95\%$
+detection rate it is behind, $0.612$ against $0.492$, and at a matched $1\%$
+false-alarm rate it detects $0.205$ of anomalous frames against the baseline's
+$0.296$. Across seeds the latter gap reaches $p=0.023$ (Welch, $n=5$) in the
+baseline's favour, though a paired video-level bootstrap over the test videos
+does not resolve either difference ($p=0.48$ and $p=0.72$), which is the same
+limit on test-set resolution documented in Section~\ref{sec:uncertainty}.
+
+Mean pooling makes the point most sharply. It has the worst FAR$_{0.5}$ in the
+table by an order of magnitude, $0.304$, and the best FAR$_{@95}$, $0.408$. Its
+scores are simply spread over a wider range, so more of them clear $0.5$; its
+separation of normal from anomalous frames is no worse. A reader ranking methods
+by FAR$_{0.5}$ would place it last, and a reader ranking them at a matched
+detection rate would place it first. At a moderate operating point the methods
+converge: FAR$_{@50}$ is $0.033$ for both the proposed model and the baseline.
+The differences that fixed-threshold reporting attributes to detection appear
+only where the threshold is extreme.
+
+We therefore withdraw the false-alarm reduction as a claim about detection
+quality. It is a reproducible property of the model's output scale, obtained by
+the sparsity budget holding most snippet scores near zero, and it is genuinely
+useful to a deployment that needs a usable default threshold. It is not evidence
+that the model separates anomalous from normal frames better than the baseline,
+and FAR$_{0.5}$ should not be read as though it were.
+
+\subsection{Temporal selection and the sparsity budget}
+\label{sec:selection}
+
+\input{table_selection}
+
+Table~\ref{tab:selection} varies the selection mechanism with every other
+component held fixed. Dense softmax attention, which assigns non-zero weight to
+all $100\%$ of snippets, reaches $0.741_{\pm0.048}$. Entmax with the temperature
+fixed at $\tau=1$ attends $77.7\%$ of snippets and reaches $0.731_{\pm0.040}$.
+Entmax with the predicted budget attends $50.6\%$ and reaches $0.761_{\pm0.014}$,
+the highest of the four and with the smallest seed variation. Fixed top-$K$
+selects most sparsely, at $20\%$ support, and reaches $0.757_{\pm0.013}$; it
+carries no gradient to the selector, so its selection is not learned.
+
+\paragraph{The budget does not adapt to event duration.}
+The motivation for predicting a budget per video is that annotated event duration
+varies by a factor of thirty across categories (Figure~\ref{fig:dataset}c), so a
+single sparsity level should not suit every video. We tested this directly.
+Across the $140$ anomalous test videos and five trained models, the predicted
+temperature has mean $0.269$ and standard deviation $0.012$, a range of
+$[0.241, 0.286]$. The realised attention support and the annotated anomalous
+fraction of a video are uncorrelated (Spearman $r=-0.015$, $p=0.86$). The gate
+converges to what is effectively a single global value, and does not adapt to
+content in the way the motivation supposed.
+
+\paragraph{It is nevertheless not replaceable by that value.}
+Setting $\tau$ by hand to $0.27$, the value the gate converges to, gives
+$0.682_{\pm0.092}$ over three seeds, against $0.761_{\pm0.014}$ for the predicted
+budget. The hand-set constant is both lower and six times more variable, with
+individual seeds spanning $0.592$ to $0.776$. The difference in means is not
+established at this sample size (Welch $p=0.27$), but the difference in stability
+is large and consistent.
+
+A plausible reading is that the gate supplies a schedule rather than a constant.
+Its output begins near $\tau=1$, since the tanh it wraps is initialised near
+zero, and decreases as training proceeds; attention is therefore dense early and
+sparse later. Imposing the final value from the first step makes selection
+aggressive before the representation supports it. On this evidence the
+contribution of the budget gate is the automatic scheduling of sparsity during
+training, not per-video adaptation, and we describe it as such.
 
 \subsection{Seed variance and the cost of single-run reporting}
 
@@ -574,19 +669,20 @@ Conclusions drawn from one run reverse under repetition.}
 \label{fig:seed}
 \end{figure}
 
-\subsection{Benchmark resolution}
+\subsection{Sampling uncertainty of the test estimate}
+\label{sec:uncertainty}
 
-The video-level bootstrap gives a $95\%$ interval of $[0.696, 0.849]$ for the
-baseline, a width of $\pm7.6$ AUC points. Figure~\ref{fig:ci} places this
-interval against reported progress on UCF-Crime. The range from $75.4$ to $88.0$
-spans approximately $1.6$ interval widths. \begin{figure}[htbp]
-\centering
-\includegraphics[width=\linewidth]{figures/fig_ci_vs_literature.png}
-\caption{Reported UCF-Crime frame-level AUC against the $95\%$ confidence
-interval measured here by video-level bootstrap. Shaded band is the interval
-about the reproduced baseline.}
-\label{fig:ci}
-\end{figure}
+Frames within a video are strongly correlated, so the effective sample size of
+the test set is closer to its $290$ videos than to the $1{,}111{,}808$ frames they
+contain. Resampling whole videos with replacement ($2000$ iterations) gives, for
+the reproduced multiple-instance baseline under the standard protocol, a $95\%$
+interval of $[0.696, 0.849]$ on frame-level AUC, a half-width of $7.6$ points.
+
+This interval is a property of this estimate on this test set, not a constant of
+the benchmark: it would differ for another model, and a larger test set would
+narrow it. Its relevance is one of scale. The differences commonly reported
+between methods on UCF-Crime are one to two AUC points, an order of magnitude
+smaller than the sampling uncertainty of a single estimate on this test set.
 
 \subsection{The validation signal does not predict the test metric}
 
@@ -659,36 +755,25 @@ IoU in Section~\ref{sec:results}.}
 \label{fig:cat}
 \end{figure}
 
-\subsection{Anomaly category classification}
-
-The detector answers whether an interval is anomalous, not of what kind. We
-additionally train a category head on the $810$ anomalous training videos, which
-carry a video-level category label. Snippet features are pooled by attention
-rather than averaged, since the annotated event occupies a median $14\%$ of its
-video, and the pooled descriptor is classified over the $13$ categories.
-
-Over the $140$ anomalous test videos the head reaches $0.379$ top-1 and $0.629$
-top-3 accuracy against a chance rate of $0.077$. Per-class recall is uneven:
-RoadAccidents $0.74$ and Arson $0.56$, against Shooting $0.13$ and Abuse, Arrest
-and Assault at $0.00$. \subsection{Masked normalisation}
+\subsection{Masked normalisation}
 
 Before masking the centring statistics of the deviation and temporal heads, the
 model scored $0.675$; the same configuration with masked statistics scores
 $0.771$. The forward pass is correct in both cases, and the defective version
 attains a \emph{lower} training loss ($0.169$ versus $0.220$). A padding-invariance test is included in the released code.
 
-\section{Application}
-\label{sec:app}
+% \section{Application}
+% \label{sec:app}
 
-We release a deployed system. A Flask service holds the backbone and detector on
-the GPU; a Django REST backend manages videos, jobs and incidents; a React client
-provides upload, live camera monitoring and incident review; analysis jobs run on
-Redis-backed workers. Uploaded video is scored at $646$--$825$ frames per second,
-above $20\times$ real time, and live camera frames are scored against a rolling
-context window so the temporal model retains history. Score runs above threshold
-are stored as incidents with a thumbnail at the peak frame and a reviewer
-verdict. Each job records the threshold that produced it, so a detection can be
-traced to its settings.
+% We release a deployed system. A Flask service holds the backbone and detector on
+% the GPU; a Django REST backend manages videos, jobs and incidents; a React client
+% provides upload, live camera monitoring and incident review; analysis jobs run on
+% Redis-backed workers. Uploaded video is scored at $646$--$825$ frames per second,
+% above $20\times$ real time, and live camera frames are scored against a rolling
+% context window so the temporal model retains history. Score runs above threshold
+% are stored as incidents with a thumbnail at the peak frame and a reviewer
+% verdict. Each job records the threshold that produced it, so a detection can be
+% traced to its settings.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -708,20 +793,24 @@ $0.769$ frame-level AUC the median temporal IoU against the annotated interval i
 $0.000$, and only $5$ of $140$ anomalous videos exceed $0.5$. A model can rank
 frames well in aggregate while localising almost no individual event. The two
 measures that do separate the methods are the AUC restricted to anomalous videos
-and the false-alarm rate: mean pooling scores $0.537$ and $0.304$ against $0.582$
-and $0.017$ for ATA-HS.
+and the fixed-threshold false-alarm rate: mean pooling scores $0.537$ and $0.304$
+against $0.582$ and $0.017$ for ATA-HS. Only the first of the two survives
+measurement at a matched detection rate (Section~\ref{sec:threshold}).
 
 \subsection{What the benchmark can resolve}
 
-With a $\pm7.6$ point video-level interval, an improvement of one to two points --
-the typical published increment -- is not resolvable on a test set of $290$ videos
-when uncertainty is estimated at the level at which the data are independent. This
-applies symmetrically. No pair of methods in Table~\ref{tab:comparison} is
+For our reproduced baseline under the standard protocol, a video-level bootstrap
+gives a $95\%$ interval of $[0.696, 0.849]$. This is sampling uncertainty for one
+estimate on this test set rather than a fixed property of the benchmark, but its
+scale matters: it is an order of magnitude larger than the one- to two-point
+differences commonly reported between methods, so such differences are not
+resolvable here. This applies symmetrically. No pair of methods in Table~\ref{tab:comparison} is
 separated on AUC: every paired bootstrap gives $p>0.16$, and against mean pooling,
 which cannot localise at all, $p=0.96$. It is why we do not claim an AUC
-improvement, and why the
-ordering of published results reviewed in Section~\ref{sec:related} cannot be
-attributed to the detectors alone.
+improvement,. The published ordering reviewed in Section~\ref{sec:related} additionally
+confounds detector with representation, since substituting CLIP features raises
+reported accuracy without changing the detection head; we therefore draw no
+conclusion from that ordering.
 
 Seed variance compounds the problem. The proposed model varies by $0.024$ across
 seeds against $0.005$ for the baseline. A $2.66$\,M-parameter temporal model
@@ -738,24 +827,51 @@ to the other, and over $18$ runs the two correlate at $r=-0.37$.
 
 \subsection{Where the proposed model does differ}
 
-At accuracy parity, ATA-HS reduces the false-alarm rate from $0.023$ for the
-baseline and $0.028$ for dense self-attention to $0.017$, with the smallest
-seed-to-seed variation of any row in Table~\ref{tab:comparison}. The reduction
-survives removing the multi-scale branch, the hybrid heads, the adaptive budget
-and entmax individually, which attributes it to the sparse temporal formulation
-rather than to any single component.
+At accuracy parity, ATA-HS lowers the false-alarm rate at threshold $0.5$ from
+$0.023$ for the baseline and $0.028$ for dense self-attention to $0.017$, with the
+smallest seed-to-seed variation of any row in Table~\ref{tab:comparison}. The
+effect survives removing the multi-scale branch, the hybrid heads, the adaptive
+budget and entmax individually, which attributes it to the sparse temporal
+formulation rather than to any single component. Over the $150$ normal test
+videos, comprising $648{,}905$ frames, the baseline raises $14{,}854$ frames above
+that threshold and the full model raises $11{,}232$.
 
-This matters because of how such a system is operated. The threshold is set by the
-false-alarm rate an operator will tolerate, not by AUC; at a fixed alert budget,
-halving the false-alarm rate halves the footage an operator must dismiss. Over the
-$150$ normal test videos, comprising $648{,}905$ frames, the baseline raises
-$14{,}854$ frames for review and ATA-HS raises $7{,}519$, a difference of $7{,}335$
-frames at equal detection accuracy.
+What this is, and is not, is the substance of Section~\ref{sec:threshold}. The
+comparison holds the threshold fixed at $0.5$ and so assumes the two models are
+comparably calibrated. They are not. Repeating it at a matched detection rate, an
+operating point invariant to the score scale, reverses the ordering: the baseline
+raises fewer false alarms at $95\%$ detection ($0.492$ against $0.612$) and
+detects more anomalous frames at a $1\%$ false-alarm rate ($0.296$ against
+$0.205$). Mean pooling, worst on FAR$_{0.5}$ by an order of magnitude, is best on
+the threshold-free measure.
 
-The comparison with dense self-attention is the direct test of sparsity, since the
-two differ only in whether attention weights may be exactly zero. ATA-HS is equal
-or better on all three columns, though only the false-alarm difference exceeds the
-seed variation.
+The sparsity budget therefore buys calibration, not discrimination. It compresses
+most snippet scores toward zero, which places a large share of normal frames below
+any fixed threshold and makes $0.5$ a usable default without tuning --- a real
+convenience when deploying a detector, and the reason the released application
+needs no per-camera threshold calibration. It does not improve the separation of
+anomalous from normal frames, and we do not claim that it does. The broader point
+is that FAR$_{0.5}$ has been read as a detection metric throughout this
+literature while measuring detection and calibration jointly, and our own initial
+reading of it was the same.
+
+Table~\ref{tab:selection} isolates the selection mechanism. Entmax with a
+predicted budget is the most accurate and the least seed-sensitive of the four,
+ahead of dense attention, of entmax at a fixed temperature, and of
+non-differentiable top-$K$. Its realised support is $50.6\%$ of snippets against
+$100\%$ for softmax, so the sparsity is a measured property rather than one
+assumed from the transformation.
+
+The motivating account of that gate is nonetheless wrong, and
+Section~\ref{sec:selection} reports the measurement that shows it. We proposed a
+per-video budget because event duration varies by a factor of thirty across
+categories; the predicted temperature in fact varies by four percent across the
+whole test set and is uncorrelated with annotated event duration. What the gate
+supplies is a schedule, dense early and sparse later, which a constant fixed at
+the converged value does not reproduce: that constant scores $0.682_{\pm0.092}$
+against $0.761_{\pm0.014}$. We therefore claim automatic scheduling of sparsity
+rather than adaptation to content, and note that a mechanism which improves
+results for reasons other than those intended is worth reporting as such.
 
 \subsection{Secondary observations}
 
@@ -781,14 +897,20 @@ RTFM.
 
 \subsection{Recommendations}
 
-Three practices follow for work on this benchmark. Report seed variance, since the
-ranking of ablations reverses between one and three runs. Do not select models on
+Four practices follow for work on this benchmark. Report seed variance: in our
+experiments the ranking of ablations reverses between one and three runs, and
+again between three and five. Test the mechanism a component is claimed to
+implement, not only whether the component helps; ours helped for a different
+reason than proposed, which only direct measurement revealed. Do not select models on
 video-level validation AUC, which does not predict the test metric. Report
-frame-level AUC alongside a localisation measure and a false-alarm rate, since AUC
-near $0.77$ is attainable with no localisation at all.
+frame-level AUC alongside a localisation measure, since AUC near $0.77$ is
+attainable with no localisation at all, and report false alarms at a matched
+detection rate rather than at a fixed threshold: the fixed-threshold rate moves
+with the scale of a model's scores, and in our table it ranks the methods in
+almost the reverse of the threshold-free order.
 
-\paragraph{Limitations.} Experiments use a single dataset, one backbone and three
-seeds. The interval we report is specific to UCF-Crime's $290$-video test set;
+\paragraph{Limitations.} Experiments use a single dataset, one backbone, and
+five seeds for the two models compared most closely and three for the remainder. The interval we report is specific to UCF-Crime's $290$-video test set;
 larger test sets would narrow it. We did not evaluate vision-language features,
 which account for most recent reported gains. Confirming that the interval is a
 property of test-set size rather than of UCF-Crime specifically would require
@@ -800,14 +922,32 @@ XD-Violence~\citep{wu2020not}, which contains $4754$ videos.
 We presented ATA-HS, a weakly-supervised video anomaly detector using
 differentiable sparse temporal attention with a per-video sparsity budget,
 together with an analysis of what the UCF-Crime benchmark can measure. ATA-HS
-matches a multiple-instance baseline in frame-level AUC to within $7\%$ of the
-benchmark's confidence interval, and halves the false-alarm rate on normal video,
-a reduction that holds across every architectural variant tested. The measurement analysis establishes that the benchmark's
+reaches frame-level AUC a paired bootstrap cannot separate from a
+multiple-instance baseline, and lowers the false-alarm rate at the conventional
+fixed threshold from $0.023$ to $0.017$. We show that this last advantage is a
+property of the model's score scale rather than of its detection: at a matched
+detection rate the ordering reverses, and the method with the worst
+fixed-threshold rate has the best threshold-free one. The measurement analysis establishes that the benchmark's
 video-level confidence interval is $\pm7.6$ AUC points, that the validation signal
 available under weak supervision does not predict the test metric, and that
 frame-level AUC does not reflect temporal localisation. Code, trained model and application are
 released.
 
+
+\appendix
+\section{Anomaly category classification}
+\label{app:category}
+
+The detector answers whether an interval is anomalous, not of what kind. We
+additionally train a category head on the $810$ anomalous training videos, which
+carry a video-level category label. Snippet features are pooled by attention
+rather than averaged, since the annotated event occupies a median $14\%$ of its
+video, and the pooled descriptor is classified over the $13$ categories.
+
+Over the $140$ anomalous test videos the head reaches $0.379$ top-1 and $0.629$
+top-3 accuracy against a chance rate of $0.077$. Per-class recall is uneven:
+RoadAccidents $0.74$ and Arson $0.56$, against Shooting $0.13$ and Abuse, Arrest
+and Assault at $0.00$. 
 \bibliographystyle{plainnat}
 \bibliography{refs}
 

@@ -1,0 +1,16 @@
+\begin{table}[htbp]
+\centering
+\caption{Temporal selection mechanisms, with every other component held fixed. Support is the mean percentage of snippets receiving non-zero attention weight, measured on the test set. Softmax is dense by construction. Fixed top-$K$ is included as a control: it selects sparsely but carries no gradient to the selector, so the selection itself is not learned. Three seeds.}
+\label{tab:selection}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Selection mechanism & AUC & FAR$_{0.5}$ & Support (\%) & Learned \\
+\midrule
+Fixed top-$K$ (non-differentiable) & $0.757_{\pm0.013}$ & $0.014_{\pm0.007}$ & 20.0 & no \\
+Softmax (dense) & $0.741_{\pm0.048}$ & $0.021_{\pm0.002}$ & 100.0 & yes \\
+Entmax, fixed $\tau=1$ & $0.731_{\pm0.040}$ & $\mathbf{0.013}_{\pm0.003}$ & 77.7 & yes \\
+Entmax, predicted $\tau$ & $\mathbf{0.761}_{\pm0.014}$ & $0.017_{\pm0.004}$ & 50.6 & yes \\
+\bottomrule
+\end{tabular}
+\end{table}

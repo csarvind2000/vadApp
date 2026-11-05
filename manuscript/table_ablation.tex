@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\caption{ATA-HS ablation on the UCF-Crime test set. Mean $\pm$ standard deviation; $n$ is the number of seeds. AP is reported with the test-set positive rate of $0.0759$, against which a constant predictor scores $0.076$. $\aucm_{\mathrm{A}}$ is restricted to the $140$ anomalous videos. No AUC value is marked best, since the sampling uncertainty of a single estimate on this test set exceeds the differences between rows.}
+\label{tab:main}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+Model & $n$ & AUC & AP & $\aucm_{\mathrm{A}}$ & FAR$_{0.5}$ & $\Delta$FAR \\
+\midrule
+ATA-HS (full) & 5 & $0.766_{\pm0.014}$ & $0.204_{\pm0.004}$ & $0.585_{\pm0.008}$ & $0.016_{\pm0.003}$ & $-26\%$ \\
+MIL baseline \citep{sultani2018real} & 5 & $0.778_{\pm0.004}$ & $0.189_{\pm0.005}$ & $0.580_{\pm0.006}$ & $0.022_{\pm0.003}$ & --- \\
+\midrule
+\quad $-$ entmax (softmax) & 5 & $0.760_{\pm0.038}$ & $\mathbf{0.210}_{\pm0.015}$ & $\mathbf{0.597}_{\pm0.018}$ & $0.015_{\pm0.005}$ & $-33\%$ \\
+\quad $-$ adaptive budget & 5 & $0.723_{\pm0.034}$ & $0.195_{\pm0.017}$ & $0.568_{\pm0.015}$ & $\mathbf{0.011}_{\pm0.005}$ & $-50\%$ \\
+\quad $-$ hybrid heads & 3 & $0.764_{\pm0.013}$ & $0.175_{\pm0.003}$ & $0.573_{\pm0.012}$ & $0.012_{\pm0.002}$ & $-47\%$ \\
+\quad $-$ multi-scale & 3 & $0.755_{\pm0.024}$ & $0.206_{\pm0.014}$ & $0.588_{\pm0.016}$ & $0.011_{\pm0.005}$ & $-47\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
