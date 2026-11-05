@@ -1,0 +1,754 @@
+<title>Inside the ATA-HS Paper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#F1F2EE;
+  --surface:#FBFBF9;
+  --sunk:#E7E9E3;
+  --ink:#141D26;
+  --muted:#5A6672;
+  --line:#D6D9D1;
+  --teal:#1C6B66;
+  --teal-soft:#1C6B6622;
+  --rust:#B5542A;
+  --rust-soft:#B5542A1F;
+  --shadow:0 1px 2px rgba(20,29,38,.05);
+
+  --f-display:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#111A1D;
+    --surface:#182226;
+    --sunk:#1E2A2E;
+    --ink:#E7EAE4;
+    --muted:#94A2A6;
+    --line:#2A383D;
+    --teal:#57B5AB;
+    --teal-soft:#57B5AB26;
+    --rust:#E08A5C;
+    --rust-soft:#E08A5C26;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111A1D;
+  --surface:#182226;
+  --sunk:#1E2A2E;
+  --ink:#E7EAE4;
+  --muted:#94A2A6;
+  --line:#2A383D;
+  --teal:#57B5AB;
+  --teal-soft:#57B5AB26;
+  --rust:#E08A5C;
+  --rust-soft:#E08A5C26;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-size:16px;
+  line-height:1.6;
+  margin:0;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%}
+
+/* ---------- progress + masthead ---------- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in{
+  max-width:1080px;margin:0 auto;
+  padding:10px 24px;
+  display:flex;gap:16px;align-items:baseline;justify-content:space-between;
+}
+.topbar-title{font-family:var(--f-display);font-size:15px;font-weight:600;letter-spacing:.01em}
+.topbar-meta{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.progress{height:2px;background:var(--teal);width:0%;transition:width .12s linear}
+
+/* ---------- shell ---------- */
+.wrap{max-width:1080px;margin:0 auto;padding-inline:24px;padding-block:0 88px}
+
+/* ---------- hero ---------- */
+.hero{padding-block:56px 40px;border-bottom:1px solid var(--line)}
+.eyebrow{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);
+}
+.hero h1{
+  font-family:var(--f-display);font-weight:600;
+  font-size:clamp(30px,5vw,48px);line-height:1.12;
+  text-wrap:balance;margin:14px 0 0;letter-spacing:-.012em;
+}
+.hero .sub{
+  font-family:var(--f-display);font-size:clamp(17px,2.1vw,21px);
+  line-height:1.5;color:var(--muted);max-width:60ch;margin:18px 0 0;
+}
+.hero-facts{
+  display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:26px;
+  font-family:var(--f-mono);font-size:12px;color:var(--muted);
+}
+.hero-facts b{color:var(--ink);font-weight:500}
+
+/* ---------- slides ---------- */
+.slide{
+  display:grid;grid-template-columns:108px 1fr;gap:32px;
+  padding-block:52px;border-bottom:1px solid var(--line);
+  scroll-margin-top:64px;
+}
+.rail{position:sticky;top:74px;align-self:start}
+.rail .num{
+  font-family:var(--f-mono);font-size:12px;font-weight:500;
+  color:var(--teal);letter-spacing:.08em;
+}
+.rail .kicker{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);margin-top:6px;line-height:1.5;
+}
+.body{min-width:0}
+.body h2{
+  font-family:var(--f-display);font-weight:600;
+  font-size:clamp(23px,3.1vw,31px);line-height:1.2;
+  margin:0 0 14px;text-wrap:balance;letter-spacing:-.008em;
+}
+.body p{margin:0 0 14px;max-width:66ch}
+.body p:last-child{margin-bottom:0}
+.lede{font-family:var(--f-display);font-size:19px;line-height:1.5}
+strong{font-weight:600}
+em{font-style:italic}
+
+/* ---------- reusable pieces ---------- */
+.callout{
+  background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--teal);
+  padding:16px 18px;margin:20px 0;box-shadow:var(--shadow);
+}
+.callout.warn{border-left-color:var(--rust)}
+.callout p{margin:0;max-width:64ch}
+.callout .tag{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--teal);display:block;margin-bottom:7px;
+}
+.callout.warn .tag{color:var(--rust)}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin:20px 0}
+.panel{background:var(--surface);border:1px solid var(--line);padding:16px 18px;box-shadow:var(--shadow)}
+.panel h3{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 9px;font-weight:500;
+}
+.panel p{font-size:14.5px;margin:0;max-width:none}
+
+.stat{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500}
+.tl{color:var(--teal)}
+.rs{color:var(--rust)}
+
+ul.clean{margin:16px 0;padding-left:0;list-style:none;display:grid;gap:11px;max-width:66ch}
+ul.clean li{display:grid;grid-template-columns:auto 1fr;gap:12px;font-size:15px;line-height:1.55}
+ul.clean li::before{
+  content:"";width:6px;height:6px;margin-top:9px;
+  background:var(--teal);border-radius:1px;
+}
+ul.clean li.neg::before{background:var(--rust)}
+
+/* ---------- steps (architecture) ---------- */
+.steps{display:grid;gap:0;margin:22px 0;border:1px solid var(--line);background:var(--surface)}
+.step{
+  display:grid;grid-template-columns:34px 1fr;gap:14px;
+  padding:14px 18px;border-bottom:1px solid var(--line);
+}
+.step:last-child{border-bottom:0}
+.step .i{
+  font-family:var(--f-mono);font-size:12px;color:var(--teal);
+  font-variant-numeric:tabular-nums;padding-top:2px;
+}
+.step .t{font-weight:600;font-size:15px}
+.step .d{font-size:14px;color:var(--muted);line-height:1.5}
+.step .d code{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+
+/* ---------- table ---------- */
+.tablewrap{overflow-x:auto;margin:22px 0;border:1px solid var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:660px;font-size:14px}
+th,td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;background:var(--sunk);
+}
+tbody td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+tbody td:first-child{font-family:var(--f-body);font-weight:500}
+tbody tr:last-child td{border-bottom:0}
+tr.ours td{background:var(--teal-soft)}
+.best{color:var(--teal);font-weight:500}
+.caption{font-size:13px;color:var(--muted);line-height:1.55;max-width:66ch;margin:-8px 0 0}
+
+/* ---------- figures ---------- */
+figure{margin:24px 0;background:var(--surface);border:1px solid var(--line);padding:20px 18px 16px;box-shadow:var(--shadow)}
+figure svg{display:block;width:100%;height:auto;max-width:100%}
+figcaption{font-size:13px;color:var(--muted);line-height:1.55;margin-top:12px;max-width:66ch}
+
+/* ---------- snippet strip motif ---------- */
+.strip{display:flex;gap:3px;align-items:flex-end;height:58px;margin:4px 0 2px}
+.strip .cell{flex:1;background:var(--sunk);border-radius:1px;min-height:2px;position:relative}
+.strip .cell.on{background:var(--teal)}
+.strip .cell.zero{background:transparent;border-bottom:2px solid var(--line);height:2px!important}
+.striprow{margin:14px 0}
+.striplabel{
+  font-family:var(--f-mono);font-size:11px;color:var(--muted);
+  display:flex;justify-content:space-between;gap:12px;margin-bottom:2px;
+}
+.striplabel b{color:var(--ink);font-weight:500}
+
+/* ---------- Q&A ---------- */
+.qa{display:grid;gap:0;border:1px solid var(--line);background:var(--surface);margin:22px 0}
+.qa .item{padding:16px 18px;border-bottom:1px solid var(--line)}
+.qa .item:last-child{border-bottom:0}
+.qa .q{font-family:var(--f-display);font-size:17px;font-weight:600;margin:0 0 7px}
+.qa .a{font-size:14.5px;margin:0;color:var(--ink);max-width:64ch}
+
+.footer{padding-block:34px;color:var(--muted);font-size:13.5px}
+.footer p{max-width:66ch;margin:0 0 8px}
+.footer code{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+
+a{color:var(--teal)}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+
+@media (max-width:720px){
+  .slide{grid-template-columns:1fr;gap:14px;padding-block:40px}
+  .rail{position:static;display:flex;gap:14px;align-items:baseline}
+  .rail .kicker{margin-top:0}
+  .wrap{padding-inline:18px}
+  .topbar-in{padding-inline:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <span class="topbar-title">Inside the ATA-HS Paper</span>
+    <span class="topbar-meta">24 pp · UCF-Crime · 11 slides</span>
+  </div>
+  <div class="progress" id="prog"></div>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="eyebrow">Walkthrough for a co-author</span>
+    <h1>Adaptive Sparse Temporal Attention and Evaluation Reliability in Weakly-Supervised Video Anomaly Detection</h1>
+    <p class="sub">The paper does two things. It proposes a detector, ATA-HS. And it shows that the
+    benchmark everyone reports on cannot resolve the differences everyone reports. The second
+    result is the stronger one, and the paper is written that way round.</p>
+    <div class="hero-facts">
+      <span>Dataset <b>UCF-Crime</b></span>
+      <span>Split <b>1610 / 290</b></span>
+      <span>Features <b>I3D-ResNet50, 2048-d</b></span>
+      <span>Seeds <b>5</b></span>
+      <span>Params <b>2.66 M</b></span>
+    </div>
+  </header>
+
+  <!-- 01 -->
+  <section class="slide" id="s1">
+    <div class="rail"><div class="num">01</div><div class="kicker">The one-minute version</div></div>
+    <div class="body">
+      <h2>What to say if you only get one sentence</h2>
+      <p class="lede">We built a sparse-attention anomaly detector, measured it honestly against
+      a 2018 baseline, and found that the benchmark's standard metrics do not measure what the
+      field reads them as measuring.</p>
+      <ul class="clean">
+        <li>Frame-level AUC, the headline number, is reached just as well by a model that
+          <em>cannot localise at all</em>.</li>
+        <li>A single test estimate carries a 95% interval of <span class="stat">±7.6</span> AUC
+          points. Published papers report gains of one to two points.</li>
+        <li>The false-alarm rate everyone quotes moves with a model's output scale, not with its
+          detection. We found this in our own favourable result and withdrew the claim.</li>
+        <li>Our architecture ties the baseline on AUC, wins on average precision, and its
+          sparsity mechanism works — but for a different reason than we proposed.</li>
+      </ul>
+      <div class="callout">
+        <span class="tag">Framing for the friend</span>
+        <p>This is a measurement paper with a model in it, not a state-of-the-art paper. Pitch it
+        to reviewers that way and every "you didn't beat the baseline" objection is already
+        answered in the abstract.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide" id="s2">
+    <div class="rail"><div class="num">02</div><div class="kicker">Motivation</div></div>
+    <div class="body">
+      <h2>The bottleneck is operators, not cameras</h2>
+      <p>Roughly a billion cameras are installed worldwide. A review of 76 CCTV interventions
+      finds crime reductions concentrated in schemes where footage is <em>actively monitored</em>,
+      not merely recorded. The binding constraint is how many feeds one person can watch.</p>
+      <p>That constraint is a property of attention, not of training. Operators miss a substantial
+      share of staged target events, and the miss rate climbs with the number of concurrent views.
+      So the goal of automation is triage: rank intervals by how unusual they are, and an operator
+      inspects the top fraction instead of everything.</p>
+      <div class="callout">
+        <span class="tag">Why weak supervision</span>
+        <p>Anomalies are rare, heterogeneous and cannot be enumerated in advance, so this is not
+        closed-set classification. And nobody can annotate surveillance archives frame by frame.
+        The standard compromise: <strong>train on one binary label per video, evaluate at frame
+        level</strong>. The learning problem is to recover localisation that was never supervised.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide" id="s3">
+    <div class="rail"><div class="num">03</div><div class="kicker">The benchmark</div></div>
+    <div class="body">
+      <h2>Two awkward properties of UCF-Crime</h2>
+      <p>1900 untrimmed real-world surveillance videos, 13 anomaly categories. Both properties
+      below shape what a model must do <em>and</em> what an experiment can establish.</p>
+      <div class="grid2">
+        <div class="panel">
+          <h3>The splits are unbalanced against you</h3>
+          <p>Robbery contributes <span class="stat">145</span> training videos and
+          <span class="stat">5</span> test videos. Shooting contributes
+          <span class="stat">27</span> and <span class="stat">23</span>. The categories a model
+          sees most during training are among the least represented when it is scored.</p>
+        </div>
+        <div class="panel">
+          <h3>Events are short and vary by 30×</h3>
+          <p>The annotated interval occupies a median <span class="stat">14%</span> of its video;
+          the positive frame rate over the test set is <span class="stat">7.6%</span>. Mean
+          duration runs from <span class="stat">3 s</span> (Abuse, RoadAccidents) to
+          <span class="stat">95 s</span> (Assault).</p>
+        </div>
+      </div>
+      <p>The second point is the architectural motivation. No single temporal scale is adequate,
+      and any bag-level aggregation that averages over too many snippets dilutes a three-second
+      event into its surrounding context.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide" id="s4">
+    <div class="rail"><div class="num">04</div><div class="kicker">Architecture</div></div>
+    <div class="body">
+      <h2>ATA-HS, six stages</h2>
+      <p>A video becomes <span class="stat">T</span> non-overlapping 16-frame snippets. A frozen
+      backbone encodes each one. Everything after that is trained.</p>
+      <div class="steps">
+        <div class="step"><div class="i">1</div><div>
+          <div class="t">Frozen I3D backbone</div>
+          <div class="d">I3D-ResNet50, Kinetics-400, centre crop. Each snippet becomes
+          <code>x_t ∈ ℝ²⁰⁴⁸</code>. Not fine-tuned, so the whole dataset reduces to a few GB of tensors.</div>
+        </div></div>
+        <div class="step"><div class="i">2</div><div>
+          <div class="t">Multi-scale dilated temporal convolution</div>
+          <div class="d">Project to 512-d, then four parallel dilated convolutions,
+          rates <code>{1,2,4,8}</code>, kernel 3, concatenated and added residually. Receptive
+          fields span 3 to 17 snippets — <code>1.6 s</code> to <code>9.1 s</code>, which covers
+          the annotated event durations.</div>
+        </div></div>
+        <div class="step"><div class="i">3</div><div>
+          <div class="t">Budget gate predicts the sparsity level</div>
+          <div class="d">A gate reads the masked mean of the sequence and emits one temperature
+          per video, <code>τ = exp(1.5·tanh(g(h̄)))</code>. One number that decides how many
+          snippets survive.</div>
+        </div></div>
+        <div class="step"><div class="i">4</div><div>
+          <div class="t">α-entmax selection</div>
+          <div class="d"><code>α = entmax₁.₅(z/τ)</code>. Assigns <strong>exactly zero</strong>
+          outside the selected set while staying differentiable. Realised support is a learned,
+          input-dependent quantity, not a fixed K.</div>
+        </div></div>
+        <div class="step"><div class="i">5</div><div>
+          <div class="t">Three scoring heads</div>
+          <div class="d">A multiple-instance head (MLP + sigmoid); a deviation head measuring
+          distance from a learned normal centre; a temporal head using next-snippet prediction
+          error. Different heads fail on different categories.</div>
+        </div></div>
+        <div class="step"><div class="i">6</div><div>
+          <div class="t">Per-snippet fusion gate</div>
+          <div class="d">A softmax gate emits mixing weights per snippet, so the balance between
+          the three heads varies along the video. Output: <code>s_t ∈ [0,1]</code>, expanded to
+          frame level.</div>
+        </div></div>
+      </div>
+      <div class="callout warn">
+        <span class="tag">The bug worth mentioning</span>
+        <p>The deviation and temporal heads centre their statistics over the sequence. Computing
+        that mean over padded positions cost <span class="stat">0.096</span> AUC
+        (<span class="stat">0.675</span> → <span class="stat">0.771</span>) <em>while lowering the
+        training loss</em>. It is a train–test inconsistency, invisible in training diagnostics,
+        and would have been attributed to the architecture. A padding-invariance test caught it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide" id="s5">
+    <div class="rail"><div class="num">05</div><div class="kicker">Why entmax</div></div>
+    <div class="body">
+      <h2>Hard top-K does not train the thing that selects</h2>
+      <p>Selecting the top K snippets is piecewise constant in the selection scores. Move a score
+      slightly and either nothing changes, or the selected set jumps. The derivative is zero
+      almost everywhere, so <strong>no gradient reaches the selector</strong>. We verified this
+      directly in an earlier prototype: the selector's gradient was literally <code>None</code>.</p>
+      <p>α-entmax gives exact zeros <em>and</em> a gradient. That is the whole argument for it.</p>
+
+      <figure>
+        <div class="striprow">
+          <div class="striplabel"><b>softmax</b><span>10 snippets, 0 exact zeros — every snippet keeps weight</span></div>
+          <div class="strip">
+            <div class="cell on" style="height:12%"></div>
+            <div class="cell on" style="height:14%"></div>
+            <div class="cell on" style="height:18%"></div>
+            <div class="cell on" style="height:24%"></div>
+            <div class="cell on" style="height:36%"></div>
+            <div class="cell on" style="height:32%"></div>
+            <div class="cell on" style="height:22%"></div>
+            <div class="cell on" style="height:16%"></div>
+            <div class="cell on" style="height:14%"></div>
+            <div class="cell on" style="height:12%"></div>
+          </div>
+        </div>
+        <div class="striprow">
+          <div class="striplabel"><b>entmax₁.₅</b><span>7 exact zeros — support is learned, not set</span></div>
+          <div class="strip">
+            <div class="cell zero"></div>
+            <div class="cell zero"></div>
+            <div class="cell zero"></div>
+            <div class="cell on" style="height:32%"></div>
+            <div class="cell on" style="height:94%"></div>
+            <div class="cell on" style="height:74%"></div>
+            <div class="cell zero"></div>
+            <div class="cell zero"></div>
+            <div class="cell zero"></div>
+            <div class="cell zero"></div>
+          </div>
+        </div>
+        <figcaption>Attention over ten snippets. A flat rule at the baseline marks an exact zero,
+        not a small weight. On the test set the realised support is <span class="stat">50.6%</span>
+        of snippets against <span class="stat">100%</span> for softmax — measured, not assumed
+        from the transformation.</figcaption>
+      </figure>
+
+      <p>Under a controlled comparison with everything else held fixed, entmax with a predicted
+      budget reaches <span class="stat tl">0.761<sub>±0.014</sub></span>, ahead of dense softmax
+      (<span class="stat">0.741<sub>±0.048</sub></span>), entmax at fixed τ
+      (<span class="stat">0.731<sub>±0.040</sub></span>) and non-differentiable top-K
+      (<span class="stat">0.757<sub>±0.013</sub></span>) — and with the lowest seed variance of
+      the four.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide" id="s6">
+    <div class="rail"><div class="num">06</div><div class="kicker">Results</div></div>
+    <div class="body">
+      <h2>The numbers, stated plainly</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Model</th><th>n</th><th>AUC</th><th>AP</th><th>AUC-A</th>
+            <th>FAR@0.5</th><th>FAR@95%TPR</th><th>TPR@1%FAR</th>
+          </tr></thead>
+          <tbody>
+            <tr class="ours">
+              <td>ATA-HS (proposed)</td><td>5</td><td>0.766<sub>±0.014</sub></td>
+              <td class="best">0.204</td><td class="best">0.585</td>
+              <td class="best">0.016</td><td>0.612</td><td>0.205</td>
+            </tr>
+            <tr>
+              <td>MIL baseline (2018)</td><td>5</td><td>0.778<sub>±0.004</sub></td>
+              <td>0.189</td><td>0.580</td><td>0.022</td>
+              <td class="best">0.492</td><td class="best">0.296</td>
+            </tr>
+            <tr>
+              <td>Mean pooling — cannot localise</td><td>3</td><td>0.775<sub>±0.011</sub></td>
+              <td>—</td><td>0.537</td><td>0.304</td><td>0.408</td><td>0.233</td>
+            </tr>
+            <tr>
+              <td>Dense self-attention</td><td>3</td><td>0.760<sub>±0.016</sub></td>
+              <td>—</td><td>0.562</td><td>0.028</td><td>0.527</td><td>0.076</td>
+            </tr>
+            <tr>
+              <td>Magnitude selection, RTFM-style</td><td>3</td><td>0.695<sub>±0.081</sub></td>
+              <td>—</td><td>0.549</td><td>0.063</td><td>0.681</td><td>0.162</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">Same I3D features, same official split, same seeds — rows differ only in
+      the model. AP base rate is <span class="stat">0.076</span>. AUC-A is restricted to the 140
+      anomalous videos. No AUC value is marked best, because no pair is separated on that measure:
+      every paired bootstrap <em>p</em> exceeds 0.16.</p>
+      <div class="callout">
+        <span class="tag">How to read this table aloud</span>
+        <p>Read across a row, never down a column. The paper's first draft combined the best AUC
+        from one ablation with the best FAR from another — neither of which was the full model —
+        and a reviewer caught it. Each row is a whole configuration.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide" id="s7">
+    <div class="rail"><div class="num">07</div><div class="kicker">Finding 1</div></div>
+    <div class="body">
+      <h2>Frame-level AUC does not measure localisation</h2>
+      <p>Mean pooling averages every snippet into one descriptor, emits a single score for the
+      video, and assigns it to every frame. It cannot localise by construction. It reaches
+      <span class="stat">0.775</span> frame-level AUC — indistinguishable from every detector we
+      tested, including the multiple-instance baseline at <span class="stat">0.778</span>.</p>
+
+      <figure>
+        <svg viewBox="0 0 720 132" role="img" aria-label="Timeline showing predicted anomaly peaks falling outside the annotated interval">
+          <rect x="60" y="34" width="600" height="34" fill="var(--sunk)"></rect>
+          <rect x="322" y="34" width="86" height="34" fill="var(--rust-soft)"></rect>
+          <rect x="322" y="34" width="86" height="34" fill="none" stroke="var(--rust)" stroke-width="1.5"></rect>
+          <text x="365" y="26" text-anchor="middle" fill="var(--rust)" font-family="IBM Plex Mono, monospace" font-size="11">annotated event</text>
+          <rect x="96" y="42" width="16" height="26" fill="var(--teal)"></rect>
+          <rect x="150" y="50" width="16" height="18" fill="var(--teal)"></rect>
+          <rect x="486" y="38" width="16" height="30" fill="var(--teal)"></rect>
+          <rect x="540" y="52" width="16" height="16" fill="var(--teal)"></rect>
+          <text x="60" y="90" fill="var(--teal)" font-family="IBM Plex Mono, monospace" font-size="11">predicted peaks</text>
+          <line x1="60" y1="104" x2="660" y2="104" stroke="var(--line)" stroke-width="1"></line>
+          <text x="60" y="122" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">0 s</text>
+          <text x="660" y="122" text-anchor="end" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">end of video</text>
+          <text x="360" y="122" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">temporal IoU = 0.00</text>
+        </svg>
+        <figcaption>The typical case. A detector at <span class="stat">0.77</span> AUC has a
+        <strong>median temporal IoU of <span class="stat">0.000</span></strong> against the
+        annotated intervals, exceeding 0.5 on only <span class="stat">5 of 140</span> anomalous
+        videos. Ranking frames well in aggregate is compatible with localising almost no
+        individual event.</figcaption>
+      </figure>
+
+      <p>So the measure the benchmark is ordinarily compared on largely answers <em>whether a
+      video contains an anomaly</em>, not <em>where it is</em> — even though the second is the
+      only thing an operator needs.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide" id="s8">
+    <div class="rail"><div class="num">08</div><div class="kicker">Finding 2</div></div>
+    <div class="body">
+      <h2>The error bar is wider than six years of progress</h2>
+      <p>Frames within a video are strongly correlated, so the effective sample size of the test
+      set is closer to its <span class="stat">290 videos</span> than to the
+      <span class="stat">1,111,808 frames</span> they contain. Bootstrap at the video level — the
+      unit at which the data are independent — and a single test estimate carries a 95% interval
+      of <span class="stat">±7.6</span> AUC points.</p>
+
+      <figure>
+        <svg viewBox="0 0 720 206" role="img" aria-label="The 95 percent confidence interval band is wider than the span of published progress from 2018 to 2024">
+          <text x="70" y="20" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">95% interval on ONE test estimate (±7.6 pts)</text>
+          <rect x="97.7" y="30" width="421.5" height="34" fill="var(--teal-soft)"></rect>
+          <rect x="97.7" y="30" width="421.5" height="34" fill="none" stroke="var(--teal)" stroke-width="1.5"></rect>
+          <line x1="308.5" y1="26" x2="308.5" y2="68" stroke="var(--teal)" stroke-width="2"></line>
+          <line x1="341.7" y1="26" x2="341.7" y2="68" stroke="var(--ink)" stroke-width="2" stroke-dasharray="3 2"></line>
+          <text x="325" y="80" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="10.5">our two models</text>
+
+          <text x="70" y="110" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">published progress, 2018 → 2024</text>
+          <line x1="275.2" y1="128" x2="624.5" y2="128" stroke="var(--rust)" stroke-width="2.5"></line>
+          <circle cx="275.2" cy="128" r="4.5" fill="var(--rust)"></circle>
+          <circle cx="624.5" cy="128" r="4.5" fill="var(--rust)"></circle>
+          <text x="275.2" y="150" text-anchor="middle" fill="var(--rust)" font-family="IBM Plex Mono, monospace" font-size="11">Sultani 75.4</text>
+          <text x="624.5" y="150" text-anchor="middle" fill="var(--rust)" font-family="IBM Plex Mono, monospace" font-size="11">VadCLIP 88.0</text>
+
+          <line x1="70" y1="172" x2="680" y2="172" stroke="var(--line)" stroke-width="1"></line>
+          <g fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="middle">
+            <line x1="125.5" y1="172" x2="125.5" y2="177" stroke="var(--line)"></line><text x="125.5" y="192">0.70</text>
+            <line x1="264.1" y1="172" x2="264.1" y2="177" stroke="var(--line)"></line><text x="264.1" y="192">0.75</text>
+            <line x1="402.7" y1="172" x2="402.7" y2="177" stroke="var(--line)"></line><text x="402.7" y="192">0.80</text>
+            <line x1="541.4" y1="172" x2="541.4" y2="177" stroke="var(--line)"></line><text x="541.4" y="192">0.85</text>
+            <line x1="680" y1="172" x2="680" y2="177" stroke="var(--line)"></line><text x="680" y="192">0.90</text>
+          </g>
+        </svg>
+        <figcaption>Both tracks are on the same AUC scale. The confidence band on a single
+        estimate spans more of that scale than the entire published progression from Sultani 2018
+        to VadCLIP 2024. Papers in this field routinely report one- to two-point gains from a
+        single training run with no uncertainty estimate.</figcaption>
+      </figure>
+
+      <p>Seed variance compounds it. The baseline varies by <span class="stat">0.005</span> across
+      seeds; ATA-HS variants by <span class="stat">0.024</span> on average, a factor of
+      <span class="stat">4.7</span>. On one seed, removing multi-scale convolution ranks best and
+      entmax ranks above softmax; <strong>across three seeds both orderings reverse</strong> — and
+      the ablation ranking shifts again between three seeds and five.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide" id="s9">
+    <div class="rail"><div class="num">09</div><div class="kicker">Finding 3</div></div>
+    <div class="body">
+      <h2>The false-alarm metric measures calibration, not detection</h2>
+      <p>FAR@0.5 counts frames of normal videos scored above a fixed threshold of 0.5. So a model
+      that multiplies every score by a constant below one lowers it — without changing the ranking
+      of any pair of frames, and so without detecting anything better. It is a joint statement
+      about detection <em>and</em> calibration, reported as though it were about detection alone.</p>
+      <p>Take the threshold from each model's own score distribution instead, and the measure
+      becomes invariant to rescaling. The ordering reverses.</p>
+
+      <figure>
+        <svg viewBox="0 0 640 268" role="img" aria-label="Slope chart: ranking by fixed-threshold false alarm rate reverses when measured at a matched detection rate">
+          <text x="190" y="24" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">FAR at fixed 0.5</text>
+          <text x="450" y="24" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Mono, monospace" font-size="11">FAR at 95% detection</text>
+          <text x="320" y="44" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Sans, sans-serif" font-size="11" font-style="italic">lower is better in both columns</text>
+
+          <line x1="190" y1="78" x2="450" y2="218" stroke="var(--teal)" stroke-width="2.5"></line>
+          <line x1="190" y1="218" x2="450" y2="78" stroke="var(--rust)" stroke-width="2.5"></line>
+          <line x1="190" y1="148" x2="450" y2="148" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"></line>
+
+          <circle cx="190" cy="78" r="5" fill="var(--teal)"></circle>
+          <circle cx="450" cy="218" r="5" fill="var(--teal)"></circle>
+          <circle cx="190" cy="218" r="5" fill="var(--rust)"></circle>
+          <circle cx="450" cy="78" r="5" fill="var(--rust)"></circle>
+          <circle cx="190" cy="148" r="5" fill="var(--muted)"></circle>
+          <circle cx="450" cy="148" r="5" fill="var(--muted)"></circle>
+
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" text-anchor="end">
+            <text x="176" y="82" fill="var(--teal)">ATA-HS  0.016</text>
+            <text x="176" y="152" fill="var(--muted)">MIL baseline  0.022</text>
+            <text x="176" y="222" fill="var(--rust)">Mean pooling  0.304</text>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" text-anchor="start">
+            <text x="464" y="82" fill="var(--rust)">Mean pooling  0.408</text>
+            <text x="464" y="152" fill="var(--muted)">MIL baseline  0.492</text>
+            <text x="464" y="222" fill="var(--teal)">ATA-HS  0.612</text>
+          </g>
+          <text x="320" y="256" text-anchor="middle" fill="var(--muted)" font-family="IBM Plex Sans, sans-serif" font-size="12">best and worst swap places</text>
+        </svg>
+        <figcaption>Mean pooling has the worst FAR@0.5 in the table by an order of magnitude and
+        the best threshold-free rate. Its scores are simply spread over a wider range, so more of
+        them clear 0.5; its separation of normal from anomalous frames is no worse. At a moderate
+        operating point the methods converge — FAR at 50% detection is
+        <span class="stat">0.033</span> for both ATA-HS and the baseline.</figcaption>
+      </figure>
+
+      <div class="callout warn">
+        <span class="tag">What we withdrew, and what we kept</span>
+        <p><strong>Withdrawn:</strong> the false-alarm reduction as evidence of better detection.
+        At 1% FAR the baseline detects <span class="stat">0.296</span> of anomalous frames against
+        our <span class="stat">0.205</span> (Welch <em>p</em> = 0.023 across seeds).
+        <strong>Kept:</strong> the sparsity budget compresses most snippet scores toward zero,
+        which makes 0.5 a usable default threshold without tuning. That is real, and it is why the
+        deployed app needs no per-camera calibration. It is calibration, not discrimination, and
+        the paper now says so.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide" id="s10">
+    <div class="rail"><div class="num">10</div><div class="kicker">Finding 4</div></div>
+    <div class="body">
+      <h2>The budget gate works — for the wrong reason</h2>
+      <p>We proposed a per-video sparsity budget because event duration varies by a factor of
+      thirty across categories. The gate should learn to select widely for a 95-second assault and
+      narrowly for a 3-second road accident. We measured whether it does.</p>
+      <ul class="clean">
+        <li class="neg">The predicted temperature varies by about <strong>four percent</strong>
+          across the whole test set: mean <span class="stat">0.269</span>, sd
+          <span class="stat">0.012</span>, range <span class="stat">[0.241, 0.286]</span>.</li>
+        <li class="neg">Support fraction against annotated event fraction: Spearman
+          <span class="stat">r = −0.015</span>, <em>p</em> = 0.86. <strong>No relationship at
+          all.</strong> The adaptivity claim is refuted.</li>
+        <li>But it is not replaceable by the constant. Fixing τ at the converged value of 0.27
+          gives <span class="stat rs">0.682<sub>±0.092</sub></span> against
+          <span class="stat tl">0.761<sub>±0.014</sub></span> for the predicted gate.</li>
+      </ul>
+      <div class="callout">
+        <span class="tag">The honest reading</span>
+        <p>What the gate supplies is a <strong>sparsity schedule during training</strong> — dense
+        early, sparse later — which a hand-set constant does not reproduce. So we claim automatic
+        scheduling of sparsity, not adaptation to content. A mechanism that helps for reasons
+        other than those intended is worth reporting as such, and only direct measurement
+        revealed it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide" id="s11">
+    <div class="rail"><div class="num">11</div><div class="kicker">Defending it</div></div>
+    <div class="body">
+      <h2>The four questions a reviewer will ask</h2>
+      <div class="qa">
+        <div class="item">
+          <p class="q">"Your model doesn't beat the baseline."</p>
+          <p class="a">Correct, and the abstract says so in the second sentence. It also doesn't
+          lose: the paired video-level bootstrap does not resolve the difference in either
+          direction. The contribution is that <em>no method in the table is separable on AUC</em>,
+          which is a statement about the benchmark, not about our model.</p>
+        </div>
+        <div class="item">
+          <p class="q">"Isn't ±7.6 just an artefact of your bootstrap?"</p>
+          <p class="a">It is the consequence of resampling at the correct unit. Frames within a
+          video are near-perfectly correlated, so frame-level bootstrap and DeLong report
+          intervals that are far too tight. We implement DeLong and explicitly recommend against
+          leading with it here.</p>
+        </div>
+        <div class="item">
+          <p class="q">"Negative results don't get published."</p>
+          <p class="a">These are not null results — they are positive findings about measurement,
+          each with a number attached, plus a working architecture whose sparsity mechanism beats
+          three alternatives under control. Position it as evaluation methodology, and the model
+          becomes the vehicle rather than the claim.</p>
+        </div>
+        <div class="item">
+          <p class="q">"Why only UCF-Crime?"</p>
+          <p class="a">Stated as a limitation. Confirming that the interval is a property of
+          test-set size rather than of UCF-Crime specifically needs a larger benchmark —
+          XD-Violence, 4754 videos, is named as the next step.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <span class="tag">Four practices the paper recommends</span>
+        <p>Report seed variance. Test the mechanism a component is <em>claimed</em> to implement,
+        not only whether it helps. Do not select models on video-level validation AUC — it
+        correlates with the test metric at <span class="stat">r = −0.37</span> over 18 runs.
+        Report false alarms at a matched detection rate, and frame AUC alongside a localisation
+        measure.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p><strong>Artefacts.</strong> 24-page Springer-format manuscript; four generated tables that
+    read their numbers directly from <code>runs/*/report.json</code>, so the LaTeX cannot drift
+    from the experiments; a 95-check protocol self-test that runs with no video data present; and
+    a deployed Django + React application with live camera feed, upload, YOLO overlay and incident
+    storage.</p>
+    <p>Everything on this page is drawn from the manuscript as it currently compiles. Figures
+    reproduce values from Tables 1–4 and the sections on selection, uncertainty and localisation.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var bar = document.getElementById('prog');
+  function update() {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    var pct = max > 0 ? (h.scrollTop / max) * 100 : 0;
+    bar.style.width = pct.toFixed(2) + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
